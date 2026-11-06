@@ -30,3 +30,5 @@ coverage/
 # reach git. scripts/export-firestore.ts refuses to run unless these are ignored.
 backup.json
 backups/
+.vercel
+.env*

@@ -21,7 +21,7 @@ interface NotificationEmailProps {
 
 export function EmailBody({
   name = "there",
-  portalUrl = "https://students.ruetcsearchive.app/profiles",
+  portalUrl = "https://ruetcse24-new.vercel.app/profiles",
   message = "Thanks for being with us. This is your update from the RUET CSE web-app.",
 }: NotificationEmailProps) {
   return (

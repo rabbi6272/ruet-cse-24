@@ -75,7 +75,7 @@ export async function sendAnnouncementAction(
       react: EmailBody({
         name: "there",
         message: cleanBody,
-        portalUrl: "https://students.ruetcsearchive.app/profiles",
+        portalUrl: "https://ruetcse24-new.vercel.app/profiles",
       }),
     });
 

@@ -71,6 +71,17 @@ const nextConfig = {
 
   // Allow dev origins for cross-origin requests
   allowedDevOrigins: ["192.168.56.1", "192.168.0.235"],
+
+  async rewrites() {
+    const apiOrigin = process.env.API_ORIGIN;
+    if (!apiOrigin) return [];
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${apiOrigin.replace(/\/+$/, "")}/api/v1/:path*`,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;
