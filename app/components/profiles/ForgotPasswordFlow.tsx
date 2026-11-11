@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import Link from "next/link";
 
-import { requestPasswordResetAction } from "../../../lib/db/students/students.server";
+import { clientResetPassword } from "../../../lib/auth/clientAuth";
 
 import { Button } from "../ui/Button";
 import { TextField } from "../ui/Field";
@@ -13,8 +13,7 @@ import { Alert } from "../ui/Icon";
 import { SpamNotice } from "./SpamNotice";
 
 /**
- * Always reports the same outcome regardless of whether the address exists, so
- * this form cannot be used to test whether someone is registered.
+ * Sends a password reset email directly via Firebase Auth on client side.
  */
 export function ForgotPasswordFlow() {
   const [email, setEmail] = useState("");
@@ -27,16 +26,10 @@ export function ForgotPasswordFlow() {
     setBusy(true);
     setError(null);
 
-    const result = await requestPasswordResetAction(email).catch(() => null);
-
-    if (!result) {
-      setError("Could not send the email. Try again.");
-      setBusy(false);
-      return;
-    }
+    const result = await clientResetPassword(email);
 
     if (!result.ok) {
-      setError(result.error);
+      setError(result.error ?? "Could not send the email. Try again.");
       setBusy(false);
       return;
     }

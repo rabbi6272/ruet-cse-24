@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { studentsKeys } from "../../../lib/db/students/students.hooks";
-import { signUpAction } from "../../../lib/db/students/students.server";
+import { clientSignUp, clientSignInWithGoogle } from "../../../lib/auth/clientAuth";
 
 import { Button, buttonClasses } from "../ui/Button";
 import { TextField } from "../ui/Field";
@@ -16,10 +16,9 @@ import { Alert } from "../ui/Icon";
 import { GoogleButton, OrDivider } from "./GoogleButton";
 
 /**
- * Self sign-up for a series: Google, or email + password. The new account is
- * signed in immediately; email/password accounts verify their address from the
- * profile page before the profile can be published. Old-directory profiles are
- * not created here — they are reclaimed through the Claim email link.
+ * Self sign-up for a series: Google, or email + password via Firebase Auth on client.
+ * The new account is signed in immediately; email/password accounts verify their address
+ * before the profile is created. Profile creation itself is stored in MongoDB.
  */
 export function JoinFlow({ seriesId }: { seriesId: string }) {
   const router = useRouter();
@@ -42,22 +41,32 @@ export function JoinFlow({ seriesId }: { seriesId: string }) {
     setError(null);
     setErrorCode(null);
 
-    const result = await signUpAction(seriesId, email, password).catch(() => null);
+    const result = await clientSignUp(email, password);
 
-    if (!result) {
-      setError("Could not create the account. Try again.");
-      setBusy(false);
-      return;
-    }
     if (!result.ok) {
-      setError(result.error);
-      setErrorCode(result.code ?? null);
+      setError(result.error ?? "Could not create the account. Try again.");
+      setErrorCode(result.code === "auth/email-already-in-use" ? "exists" : null);
       setBusy(false);
       return;
     }
 
-    // Signed in by the server action (which also revalidated every page);
-    // drop client-side data cached while signed out, then move on.
+    // Signed in via client Firebase Auth + session cookie
+    await queryClient.invalidateQueries({ queryKey: studentsKeys.all });
+    router.push("/profiles/create");
+    router.refresh();
+  }
+
+  async function handleGoogleSignUp() {
+    setBusy(true);
+    setError(null);
+    const result = await clientSignInWithGoogle();
+    setBusy(false);
+
+    if (!result.ok) {
+      setError(result.error ?? "Google sign-up failed.");
+      return;
+    }
+
     await queryClient.invalidateQueries({ queryKey: studentsKeys.all });
     router.push("/profiles/create");
     router.refresh();
@@ -140,7 +149,7 @@ export function JoinFlow({ seriesId }: { seriesId: string }) {
         <OrDivider />
 
         <div className="mt-6">
-          <GoogleButton next={`/s/${seriesId}`} />
+          <GoogleButton next={`/s/${seriesId}`} onClick={handleGoogleSignUp} />
         </div>
 
         <p className="mt-6 border-t border-border pt-5 text-sm text-fg-muted">

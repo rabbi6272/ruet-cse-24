@@ -28,6 +28,22 @@ export function legacyIdForEmail(email: string): string {
 }
 
 export async function findProfileById(uid: string): Promise<Profile | null> {
+  const apiOrigin = process.env.API_ORIGIN;
+  if (apiOrigin) {
+    try {
+      const res = await fetch(`${apiOrigin.replace(/\/+$/, "")}/api/v1/profiles/${encodeURIComponent(uid)}`, {
+        next: { revalidate: 60 },
+      });
+      if (res.status === 404) return null;
+      if (res.ok) {
+        const json = await res.json();
+        if (json.ok && json.profile) return json.profile as Profile;
+      }
+    } catch (e) {
+      console.warn(`[students.admin.repo] API fetch failed for profile ${uid}:`, e);
+    }
+  }
+
   const snap = await profiles().doc(uid).get();
   return snap.exists ? toProfile(snap.data() as Raw, snap.id) : null;
 }
@@ -148,6 +164,21 @@ export async function countLegacy(): Promise<number> {
  * guaranteed to be rejected at the roll reservation.
  */
 export async function countUnclaimed(): Promise<number> {
+  const apiOrigin = process.env.API_ORIGIN;
+  if (apiOrigin) {
+    try {
+      const res = await fetch(`${apiOrigin.replace(/\/+$/, "")}/api/v1/claim/count`, {
+        next: { revalidate: 300 },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.ok && typeof json.count === "number") return json.count;
+      }
+    } catch (e) {
+      console.warn("[students.admin.repo] API fetch failed for claim count:", e);
+    }
+  }
+
   const [legacySnap, profileSnap, rollSnap] = await Promise.all([
     legacy().get(),
     profiles().get(),
@@ -169,6 +200,22 @@ export async function countUnclaimed(): Promise<number> {
 
 /** Published profiles in one series — the live count on the landing picker. */
 export async function countPublishedBySeries(series: string): Promise<number> {
+  const apiOrigin = process.env.API_ORIGIN;
+  if (apiOrigin) {
+    try {
+      const res = await fetch(`${apiOrigin.replace(/\/+$/, "")}/api/v1/profiles?series=${encodeURIComponent(series)}&limit=1`, {
+        next: { revalidate: 300 },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.ok && typeof json.total === "number") return json.total;
+        if (json.ok && Array.isArray(json.profiles)) return json.profiles.length;
+      }
+    } catch (e) {
+      console.warn(`[students.admin.repo] API fetch failed for series count ${series}:`, e);
+    }
+  }
+
   const snap = await profiles()
     .where("series", "==", series)
     .where("published", "==", true)

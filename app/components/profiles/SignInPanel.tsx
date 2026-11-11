@@ -5,8 +5,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
-import { useSignIn } from "../../../lib/db/students/students.hooks";
-import { resendVerificationAction } from "../../../lib/db/students/students.server";
+import {
+  clientSignIn,
+  clientSignInWithGoogle,
+  clientResendVerification,
+} from "../../../lib/auth/clientAuth";
 
 import { Button, buttonClasses } from "../ui/Button";
 import { TextField } from "../ui/Field";
@@ -20,9 +23,7 @@ import { SpamNotice } from "./SpamNotice";
  * create and update pages need it inline, and a redirect would lose the visitor's
  * place and any half-typed form.
  *
- * A signed-in but unverified account gets its own state: profile creation is
- * gated on verification, so this panel says so up front and can re-send the
- * link (the action is session-bound — no password re-entry needed).
+ * Sign-in is handled purely by Firebase Auth on the client side.
  */
 export function SignInPanel({ context }: { context: string }) {
   const router = useRouter();
@@ -32,13 +33,11 @@ export function SignInPanel({ context }: { context: string }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
   const [verifyNotice, setVerifyNotice] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [resending, setResending] = useState(false);
   const [needsClaim, setNeedsClaim] = useState(false);
 
-  const signIn = useSignIn();
-
   // The Google callback lands here with `?authError=google` when it fails.
-  // Read once on mount (no `useSearchParams`, so no Suspense boundary needed).
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("authError") === "google") {
       setFormError("Google sign-in didn't go through. Try again, or use your email and password.");
@@ -49,25 +48,19 @@ export function SignInPanel({ context }: { context: string }) {
     event.preventDefault();
     setFormError(null);
     setNeedsClaim(false);
+    setBusy(true);
 
-    const result = await signIn.mutateAsync({ email, password }).catch(() => null);
-
-    if (!result) {
-      setFormError("Could not sign in. Check your connection and try again.");
-      return;
-    }
+    const result = await clientSignIn(email, password);
+    setBusy(false);
 
     if (!result.ok) {
-      setFormError(result.error);
-      // Old-directory account: the pincode is not accepted, only the Claim link.
+      setFormError(result.error ?? "Could not sign in. Check your details.");
       setNeedsClaim(result.code === "claim");
       return;
     }
 
-    // Signed in, but profile creation is blocked until the address is
-    // verified. Sign-in itself just re-sent the link.
     if (!result.emailVerified) {
-      setVerifyEmail(result.email);
+      setVerifyEmail(result.email ?? email);
       setVerifyNotice(null);
       setFormError(null);
       return;
@@ -76,19 +69,31 @@ export function SignInPanel({ context }: { context: string }) {
     router.refresh();
   }
 
+  async function handleGoogleSignIn() {
+    setFormError(null);
+    setBusy(true);
+    const result = await clientSignInWithGoogle();
+    setBusy(false);
+    if (!result.ok) {
+      setFormError(result.error ?? "Google sign-in failed.");
+      return;
+    }
+    router.refresh();
+  }
+
   async function onResend() {
     setResending(true);
     setVerifyNotice(null);
     setFormError(null);
 
-    const result = await resendVerificationAction().catch(() => null);
+    const result = await clientResendVerification();
+    setResending(false);
 
-    if (result?.ok) {
+    if (result.ok) {
       setVerifyNotice("Verification email sent again. Check your inbox and spam folder.");
     } else {
-      setFormError(result?.error ?? "Could not resend the email. Try again.");
+      setFormError(result.error ?? "Could not resend the email. Try again.");
     }
-    setResending(false);
   }
 
   if (verifyEmail) {
@@ -196,7 +201,7 @@ export function SignInPanel({ context }: { context: string }) {
 
           <Button
             type="submit"
-            busy={signIn.isPending}
+            busy={busy}
             busyLabel="Signing in…"
             className="w-full"
           >
@@ -207,7 +212,7 @@ export function SignInPanel({ context }: { context: string }) {
         <OrDivider />
 
         <div className="mt-6">
-          <GoogleButton next={pathname ?? undefined} />
+          <GoogleButton next={pathname ?? undefined} onClick={handleGoogleSignIn} />
         </div>
 
         <div className="mt-6 space-y-2 border-t border-border pt-5 text-sm">

@@ -29,8 +29,27 @@ function toProfileDoc(snap: QueryDocumentSnapshot<DocumentData>): Profile {
   return toProfile(snap.data() as Raw, snap.id);
 }
 
+function getApiBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    return "";
+  }
+  return (process.env.API_ORIGIN ?? "http://localhost:3005").replace(/\/+$/, "");
+}
+
 export async function listPublishedProfiles(series: string): Promise<Profile[]> {
-  // Two equality filters: Firestore merges them without a composite index.
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/v1/profiles?series=${encodeURIComponent(series)}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.ok && Array.isArray(json.profiles)) {
+        return json.profiles as Profile[];
+      }
+    }
+  } catch (err) {
+    console.warn("[students.repo] Failed to fetch profiles from /api/v1/profiles, falling back to Firestore:", err);
+  }
+
+  // Fallback to Firestore client query
   const snap = await getDocs(
     query(
       collection(db, COLLECTIONS.profiles),
@@ -43,6 +62,19 @@ export async function listPublishedProfiles(series: string): Promise<Profile[]> 
 }
 
 export async function getProfileDoc(uid: string): Promise<Profile | null> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/v1/profiles/${encodeURIComponent(uid)}`);
+    if (res.status === 404) return null;
+    if (res.ok) {
+      const json = await res.json();
+      if (json.ok && json.profile) {
+        return json.profile as Profile;
+      }
+    }
+  } catch (err) {
+    console.warn(`[students.repo] Failed to fetch profile ${uid} from /api/v1/profiles, falling back to Firestore:`, err);
+  }
+
   const snap = await getDoc(
     doc(collection(db, COLLECTIONS.profiles), uid),
   );

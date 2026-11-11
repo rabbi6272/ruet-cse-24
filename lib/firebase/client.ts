@@ -1,5 +1,6 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 import {
   initializeAppCheck,
   ReCaptchaV3Provider,
@@ -42,3 +43,4 @@ function getAppCheck(appInstance: FirebaseApp): AppCheck | null {
 getAppCheck(app);
 
 export const db = getFirestore(app);
+export const auth = getAuth(app);

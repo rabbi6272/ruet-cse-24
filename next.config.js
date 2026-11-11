@@ -75,10 +75,15 @@ const nextConfig = {
   async rewrites() {
     const apiOrigin = process.env.API_ORIGIN;
     if (!apiOrigin) return [];
+    const origin = apiOrigin.replace(/\/+$/, "");
     return [
       {
-        source: "/api/:path*",
-        destination: `${apiOrigin.replace(/\/+$/, "")}/api/v1/:path*`,
+        source: "/api/v1/:path*",
+        destination: `${origin}/api/v1/:path*`,
+      },
+      {
+        source: "/api/:path((?!profiles\\/upload-image|profiles\\/delete-image).*)",
+        destination: `${origin}/api/v1/:path*`,
       },
     ];
   },
