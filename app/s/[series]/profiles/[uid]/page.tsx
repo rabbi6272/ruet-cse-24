@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { ProfileDetail } from "../../../../components/profiles/ProfileDetail";
+import { ProfileDetail } from "@/modules/profile/components/ProfileDetail";
 
 interface ProfilePageProps {
   params: Promise<{ series: string; uid: string }>;

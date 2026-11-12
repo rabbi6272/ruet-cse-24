@@ -1,6 +1,7 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+// No `firebase/auth` here: all user auth runs on cse-archive-server (HttpOnly __session cookie).
+// This client only serves the read-only Firestore fallback for public profiles.
 import {
   initializeAppCheck,
   ReCaptchaV3Provider,
@@ -43,4 +44,3 @@ function getAppCheck(appInstance: FirebaseApp): AppCheck | null {
 getAppCheck(app);
 
 export const db = getFirestore(app);
-export const auth = getAuth(app);

@@ -1,4 +1,4 @@
-import type { Section } from "./Student";
+import type { Section } from "../profile/profile.types";
 
 /**
  * The registry of CSE series the directory knows about.

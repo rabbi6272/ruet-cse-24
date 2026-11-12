@@ -2,42 +2,30 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { getProfileDoc, listPublishedProfiles } from "./students.repo";
+import { getUnclaimedCountAction } from "@/modules/claim/claim.actions";
+import { getProfileDoc, listPublishedProfiles } from "./profile.client";
 import {
   createProfileAction,
   getMyContactAction,
   getMyProfileAction,
-  getViewerSessionAction,
-  getUnclaimedCountAction,
-  signInAction,
-  signOutAction,
   updateContactAction,
   updateProfileAction,
-} from "./students.server";
+} from "./profile.actions";
 
-import type { Profile } from "../../../types/Student";
+import { studentsKeys } from "@/shared/queryKeys";
+import type { Profile } from "./profile.types";
+
+// Session hooks (useViewerSession, useSignIn, useSignOut) live in
+// `modules/auth/auth.hooks.ts`; they are re-exported here for convenience.
+export { useViewerSession, useSignIn, useSignOut } from "@/modules/auth/auth.hooks";
+export { studentsKeys };
 
 /**
  * Client-side data access.
  *
  * Hooks never import Firestore directly — they go through a repo — and they
- * never import React-dependent code from the service layer. Server state lives
- * only here, so the Zustand mirror of profiles is no longer needed.
+ * never import React-dependent code from the service layer.
  */
-
-export const studentsKeys = {
-  all: ["profiles"] as const,
-  list: (series: string) => [...studentsKeys.all, "list", series] as const,
-  /** Prefix matching every series' directory cache. */
-  get lists() {
-    return [...studentsKeys.all, "list"] as const;
-  },
-  detail: (id: string) => [...studentsKeys.all, "detail", id] as const,
-  unclaimedCount: () => [...studentsKeys.all, "unclaimed-count"] as const,
-  viewer: () => [...studentsKeys.all, "viewer"] as const,
-  session: () => [...studentsKeys.all, "session"] as const,
-  contact: () => [...studentsKeys.all, "contact"] as const,
-};
 
 function byRoll(a: Profile, b: Profile): number {
   return a.roll.localeCompare(b.roll, undefined, { numeric: true });
@@ -96,20 +84,6 @@ export function useUnclaimedCount(enabled = true) {
  * a prop so the decision survives navigation without a server round trip per
  * page, and so signing out clears it along with everything else.
  */
-/** The signed-in account (`{ email }`), or `null` when signed out. */
-export function useViewerSession() {
-  return useQuery({
-    queryKey: studentsKeys.session(),
-    queryFn: getViewerSessionAction,
-    // Always re-check: Join/Claim sign the user in via a full redirect, and a
-    // cached "signed out" would show them the sign-in panel again. Also
-    // re-check on tab focus, so "verify your email" clears after the user
-    // opens the link in another tab (global default disables this).
-    staleTime: 0,
-    refetchOnWindowFocus: true,
-  });
-}
-
 export function useViewerProfile() {
   return useQuery({
     queryKey: studentsKeys.viewer(),
@@ -136,31 +110,6 @@ function useInvalidateProfiles() {
   return () => {
     queryClient.invalidateQueries({ queryKey: studentsKeys.all });
   };
-}
-
-export function useSignIn() {
-  const invalidate = useInvalidateProfiles();
-
-  return useMutation({
-    mutationFn: ({ email, password }: { email: string; password: string }) =>
-      signInAction(email, password),
-    onSuccess: (result) => {
-      if (result.ok) invalidate();
-    },
-  });
-}
-
-export function useSignOut() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: signOutAction,
-    onSuccess: () => {
-      // Everything cached belongs to the previous user, so drop it rather than
-      // showing a signed-out visitor the previous account's data.
-      queryClient.clear();
-    },
-  });
 }
 
 export function useCreateProfile() {

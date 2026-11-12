@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { SERIES } from "../types/series";
+import { SERIES } from "@/modules/series/series.types";
 import { absoluteUrl } from "./seo";
 
 export default function sitemap(): MetadataRoute.Sitemap {

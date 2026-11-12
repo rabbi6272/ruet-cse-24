@@ -4,16 +4,17 @@ import { useState } from "react";
 
 import Link from "next/link";
 
-import { clientResetPassword } from "../../../lib/auth/clientAuth";
+import { requestPasswordResetAction } from "@/modules/auth/auth.actions";
 
-import { Button } from "../ui/Button";
-import { TextField } from "../ui/Field";
-import { Alert } from "../ui/Icon";
+import { Button } from "@/shared/ui/Button";
+import { TextField } from "@/shared/ui/Field";
+import { Alert } from "@/shared/ui/Icon";
 
 import { SpamNotice } from "./SpamNotice";
 
 /**
- * Sends a password reset email directly via Firebase Auth on client side.
+ * Requests a password reset email via cse-archive-server (uniform response,
+ * whether or not the account exists).
  */
 export function ForgotPasswordFlow() {
   const [email, setEmail] = useState("");
@@ -26,7 +27,10 @@ export function ForgotPasswordFlow() {
     setBusy(true);
     setError(null);
 
-    const result = await clientResetPassword(email);
+    const result = await requestPasswordResetAction(email).catch(() => ({
+      ok: false as const,
+      error: "Could not send the email. Try again.",
+    }));
 
     if (!result.ok) {
       setError(result.error ?? "Could not send the email. Try again.");

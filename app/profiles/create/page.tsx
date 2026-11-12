@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { ProfileForm } from "../../components/profiles/ProfileForm";
+import { ProfileForm } from "@/modules/profile/components/ProfileForm";
 
 export const metadata: Metadata = {
   title: "Create profile",

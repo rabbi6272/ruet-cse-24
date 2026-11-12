@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { countPublishedBySeries } from "../lib/db/students/students.admin.repo";
-import { SERIES } from "../types/series";
+import { countPublishedBySeries } from "@/modules/profile/profile.repo";
+import { SERIES } from "@/modules/series/series.types";
 import { absoluteUrl, createMetadata, siteConfig } from "./seo";
 
 export const metadata: Metadata = createMetadata({

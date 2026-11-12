@@ -9,15 +9,15 @@ import {
   completeClaimAction,
   openClaimLinkAction,
   startClaimAction,
-} from "../../../lib/db/students/students.server";
-import { SECTION_LABELS } from "../../../types/Student";
+} from "@/modules/claim/claim.actions";
+import { SECTION_LABELS } from "@/modules/profile/profile.types";
 
-import { Button } from "../ui/Button";
-import { SelectField, TextField } from "../ui/Field";
-import { Alert, Check } from "../ui/Icon";
-import { cn } from "../ui/cn";
+import { Button } from "@/shared/ui/Button";
+import { SelectField, TextField } from "@/shared/ui/Field";
+import { Alert, Check } from "@/shared/ui/Icon";
+import { cn } from "@/shared/ui/cn";
 
-import { EmailSentPanel } from "./EmailSentPanel";
+import { EmailSentPanel } from "@/modules/auth/components/EmailSentPanel";
 
 type Step = "email" | "link" | "password";
 

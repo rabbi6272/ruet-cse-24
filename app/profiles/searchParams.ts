@@ -1,5 +1,5 @@
-import type { SectionFilter } from "../../types/Student";
-import type { SeriesConfig } from "../../types/series";
+import type { SectionFilter } from "@/modules/profile/profile.types";
+import type { SeriesConfig } from "@/modules/series/series.types";
 
 /**
  * Coerces an untrusted `?sec=` value into a valid filter for the active

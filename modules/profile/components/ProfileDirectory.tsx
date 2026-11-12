@@ -4,16 +4,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
-import { useProfiles } from "../../../lib/db/students/students.hooks";
-import { getSeries } from "../../../types/series";
+import { useProfiles } from "@/modules/profile/profile.hooks";
+import { getSeries } from "@/modules/series/series.types";
 
-import { buttonClasses } from "../ui/Button";
-import { EmptyState, ErrorState, ProfileGridSkeleton } from "../ui/StateBlock";
+import { buttonClasses } from "@/shared/ui/Button";
+import { EmptyState, ErrorState, ProfileGridSkeleton } from "@/shared/ui/StateBlock";
 import { DirectoryHeader } from "./DirectoryHeader";
 import { DirectoryToolbar } from "./DirectoryToolbar";
 import { ProfileCard } from "./ProfileCard";
 
-import type { Profile, SectionFilter } from "../../../types/Student";
+import type { Profile, SectionFilter } from "@/modules/profile/profile.types";
 
 /**
  * Filter state is mirrored into the query string so a filtered view can be

@@ -4,7 +4,7 @@ import { getFirestore } from "firebase-admin/firestore";
 
 /**
  * Moves every profile photo onto the single-avatar scheme: `Users/{uid}/avatar`
- * (see `lib/media/avatar.server.ts`).
+ * (see `modules/media/media.services.ts`).
  *
  * Photos uploaded by the old site live at `Users/<20-char id>`, and early
  * uploads from this app at `Users/{uid}/<random>`. Each is renamed in

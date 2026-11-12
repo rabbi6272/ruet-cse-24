@@ -2,10 +2,10 @@
 
 import { Resend } from "resend";
 
-import { getSession } from "../../lib/auth/session";
-import { listProfiles } from "../../lib/db/students/students.admin.repo";
+import { getSession } from "@/modules/auth/auth.services";
+import { listProfiles } from "@/modules/profile/profile.repo";
 
-import { EmailBody } from "./EmailBody";
+import { EmailBody } from "./components/EmailBody";
 
 /**
  * Bulk announcement email.

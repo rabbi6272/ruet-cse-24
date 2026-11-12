@@ -1,6 +1,6 @@
 /**
  * Multi-series backfill: stamps `profiles/{uid}.series` from each document's
- * roll number, using the registry in `types/series.ts`.
+ * roll number, using the registry in `modules/series/series.types.ts`.
  *
  * The directory query filters on `series`, so every existing profile needs the
  * field before the new code goes live. Documents whose roll matches no
@@ -20,7 +20,7 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type DocumentData } from "firebase-admin/firestore";
 
-import { seriesFromRoll } from "../types/series";
+import { seriesFromRoll } from "../modules/series/series.types";
 
 const args = new Set(process.argv.slice(2));
 const APPLY = args.has("--apply");

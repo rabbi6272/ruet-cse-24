@@ -1,4 +1,4 @@
-import { Alert } from "../ui/Icon";
+import { Alert } from "@/shared/ui/Icon";
 
 // Firebase sends every auth email from its shared domain, which Gmail and
 // Outlook often file under Spam or Promotions.

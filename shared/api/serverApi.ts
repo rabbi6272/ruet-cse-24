@@ -1,9 +1,9 @@
 import "server-only";
-import { cookies } from "next/headers";
+import { cookies, headers as requestHeaders } from "next/headers";
 
-const API_ORIGIN = (process.env.API_ORIGIN ?? "http://localhost:3005").replace(/\/+$/, "");
+import { SERVER_URL as API_ORIGIN } from "@/config/server-url";
+
 const COOKIE_NAME = "__session";
-const SESSION_MAX_AGE_S = 5 * 24 * 60 * 60; // 5 days
 
 export interface ApiFetchOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -20,10 +20,42 @@ export interface ApiResponse<T = any> {
   code?: string;
 }
 
+export type SessionPayload = { value: string; maxAge: number };
+
+/**
+ * Stores the session minted by cse-archive-server as an HttpOnly cookie on THIS
+ * site's domain. Only callable from Server Actions / Route Handlers.
+ */
+export async function setSessionCookie(session: SessionPayload): Promise<void> {
+  (await cookies()).set(COOKIE_NAME, session.value, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax", // the Google callback arrives as a cross-site top-level redirect
+    path: "/",
+    maxAge: session.maxAge,
+  });
+}
+
+export async function clearSessionCookie(): Promise<void> {
+  (await cookies()).delete(COOKIE_NAME);
+}
+
+/** End-user IP, so the auth server's brute-force limits apply per visitor. */
+async function forwardedFor(): Promise<string | undefined> {
+  try {
+    const h = await requestHeaders();
+    return h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Server-to-server fetch helper for calling cse-archive-server APIs (/api/v1/*).
- * Automatically forwards session cookies, handles CSRF origin headers, and syncs
- * returned Set-Cookie headers into Next.js cookie jar.
+ * Forwards the visitor's `__session` cookie and IP and sends the site Origin for
+ * the server's CSRF check. It never writes cookies itself (that would throw when
+ * called while rendering a Server Component); callers that receive a session use
+ * `setSessionCookie`.
  */
 export async function serverApi<T = any>(
   path: string,
@@ -31,6 +63,7 @@ export async function serverApi<T = any>(
 ): Promise<ApiResponse<T>> {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get(COOKIE_NAME);
+  const ip = await forwardedFor();
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const origin = new URL(siteUrl).origin;
@@ -39,6 +72,7 @@ export async function serverApi<T = any>(
     "Content-Type": "application/json",
     Origin: origin,
     ...(sessionCookie ? { Cookie: `${COOKIE_NAME}=${sessionCookie.value}` } : {}),
+    ...(ip ? { "X-Forwarded-For": ip } : {}),
     ...options.headers,
   };
 
@@ -50,24 +84,8 @@ export async function serverApi<T = any>(
       method: options.method ?? "GET",
       headers,
       body: options.body ? JSON.stringify(options.body) : undefined,
-      cache: "no-store",
-      ...(options.revalidate ? { next: { revalidate: options.revalidate } } : {}),
+      ...(options.revalidate ? { next: { revalidate: options.revalidate } } : { cache: "no-store" as const }),
     });
-
-    // Sync Set-Cookie from server response into Next.js cookie jar
-    const setCookieHeader = res.headers.get("set-cookie");
-    if (setCookieHeader) {
-      const match = setCookieHeader.match(/__session=([^;]+)/);
-      if (match && match[1]) {
-        cookieStore.set(COOKIE_NAME, match[1], {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          path: "/",
-          maxAge: SESSION_MAX_AGE_S,
-        });
-      }
-    }
 
     const json = (await res.json().catch(() => null)) as Record<string, any> | null;
 
@@ -90,8 +108,9 @@ export async function serverApi<T = any>(
     console.error(`[serverApi] Request failed for ${options.method ?? "GET"} ${url}:`, err);
     return {
       ok: false,
-      status: 500,
-      error: err?.message || "Failed to communicate with API server.",
+      status: 503,
+      code: "unavailable",
+      error: "The server is unavailable right now. Please try again.",
     };
   }
 }

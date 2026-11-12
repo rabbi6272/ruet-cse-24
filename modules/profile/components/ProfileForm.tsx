@@ -11,7 +11,7 @@ import {
   FIELD_LIMITS,
   profileDraftSchema,
   updateProfileSchema,
-} from "../../../lib/db/students/students.schema";
+} from "@/modules/profile/profile.types";
 import {
   studentsKeys,
   useCreateProfile,
@@ -20,30 +20,30 @@ import {
   useUpdateProfile,
   useViewerProfile,
   useViewerSession,
-} from "../../../lib/db/students/students.hooks";
+} from "@/modules/profile/profile.hooks";
 
-import { BLOOD_GROUPS, SECTION_LABELS } from "../../../types/Student";
-import { allSections, seriesFromRoll } from "../../../types/series";
+import { BLOOD_GROUPS, SECTION_LABELS } from "@/modules/profile/profile.types";
+import { allSections, seriesFromRoll } from "@/modules/series/series.types";
 
-import { Button, buttonClasses } from "../ui/Button";
+import { Button, buttonClasses } from "@/shared/ui/Button";
 import {
   SelectField,
   TextAreaField,
   TextField,
   ToggleField,
-} from "../ui/Field";
-import { Alert } from "../ui/Icon";
-import { Skeleton } from "../ui/StateBlock";
-import { resendVerificationAction } from "../../../lib/db/students/students.server";
+} from "@/shared/ui/Field";
+import { Alert } from "@/shared/ui/Icon";
+import { Skeleton } from "@/shared/ui/StateBlock";
+import { resendVerificationAction } from "@/modules/auth/auth.actions";
 import { ImagePicker } from "./ImagePicker";
-import { SpamNotice } from "./SpamNotice";
-import { SignInPanel } from "./SignInPanel";
+import { SpamNotice } from "@/modules/auth/components/SpamNotice";
+import { SignInPanel } from "@/modules/auth/components/SignInPanel";
 
 import type {
   ProfilePicture,
   Section,
   SectionFilter,
-} from "../../../types/Student";
+} from "@/modules/profile/profile.types";
 
 interface Values {
   fullName: string;
@@ -102,6 +102,9 @@ export function ProfileForm({ mode }: ProfileFormProps) {
   const updateContact = useUpdateContact();
 
   const [values, setValues] = useState<Values>(EMPTY);
+  // Last saved values (update mode). "Save changes" stays disabled until the
+  // form differs from this snapshot.
+  const [saved, setSaved] = useState<Values | null>(null);
   const [picture, setPicture] = useState<ProfilePicture>({ publicId: "", url: "" });
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -113,7 +116,7 @@ export function ProfileForm({ mode }: ProfileFormProps) {
     if (hydrated) return;
 
     if (mode === "update" && viewer) {
-      setValues({
+      const loaded: Values = {
         fullName: viewer.fullName,
         nickname: viewer.nickname,
         roll: viewer.roll,
@@ -124,7 +127,9 @@ export function ProfileForm({ mode }: ProfileFormProps) {
         fbProfile: viewer.fbProfile,
         mobileNumber: contact?.mobileNumber ?? "",
         published: viewer.published,
-      });
+      };
+      setValues(loaded);
+      setSaved(loaded);
       setPicture(viewer.profilePicture ?? { publicId: "", url: "" });
       setHydrated(true);
     }
@@ -236,6 +241,7 @@ export function ProfileForm({ mode }: ProfileFormProps) {
     }
 
     await queryClient.invalidateQueries({ queryKey: studentsKeys.all });
+    setSaved(values);
     setFormError(null);
     toast.success("Changes saved");
   }
@@ -326,6 +332,11 @@ export function ProfileForm({ mode }: ProfileFormProps) {
   const creating = mode === "create";
   const saving = createProfile.isPending || updateProfile.isPending || updateContact.isPending;
   const busy = saving;
+  // The photo saves itself on upload/remove, so only form fields count here.
+  const dirty =
+    creating ||
+    saved === null ||
+    (Object.keys(values) as (keyof Values)[]).some((key) => values[key] !== saved[key]);
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6 lg:py-12">
@@ -525,6 +536,8 @@ export function ProfileForm({ mode }: ProfileFormProps) {
             type="submit"
             busy={saving}
             busyLabel={creating ? "Creating profile…" : "Saving…"}
+            disabled={!dirty || saving}
+            title={!dirty ? "No changes to save" : undefined}
           >
             {creating ? "Create profile" : "Save changes"}
           </Button>

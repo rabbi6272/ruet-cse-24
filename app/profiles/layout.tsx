@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { Navbar } from "../components/Navbar";
+import { Navbar } from "@/shared/layout/Navbar";
 import { createMetadata } from "../seo";
 
 export const metadata: Metadata = createMetadata({

@@ -9,11 +9,12 @@ import {
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
 
-import { db } from "../../firebase/client";
-import { COLLECTIONS } from "../../firebase/collections";
-import { toProfile } from "./students.mapper";
+import { db } from "@/config/firebase.client";
+import { COLLECTIONS } from "@/config/collections";
+import { toProfile } from "@/modules/profile/profile.mapper";
+import { SERVER_URL } from "@/config/server-url";
 
-import type { Profile } from "../../../types/Student";
+import type { Profile } from "@/modules/profile/profile.types";
 
 /**
  * Client-side reads for the public directory.
@@ -30,10 +31,7 @@ function toProfileDoc(snap: QueryDocumentSnapshot<DocumentData>): Profile {
 }
 
 function getApiBaseUrl(): string {
-  if (typeof window !== "undefined") {
-    return "";
-  }
-  return (process.env.API_ORIGIN ?? "http://localhost:3005").replace(/\/+$/, "");
+  return SERVER_URL;
 }
 
 export async function listPublishedProfiles(series: string): Promise<Profile[]> {
@@ -46,7 +44,7 @@ export async function listPublishedProfiles(series: string): Promise<Profile[]> 
       }
     }
   } catch (err) {
-    console.warn("[students.repo] Failed to fetch profiles from /api/v1/profiles, falling back to Firestore:", err);
+    console.warn("[profile.client] Failed to fetch profiles from /api/v1/profiles, falling back to Firestore:", err);
   }
 
   // Fallback to Firestore client query
@@ -72,7 +70,7 @@ export async function getProfileDoc(uid: string): Promise<Profile | null> {
       }
     }
   } catch (err) {
-    console.warn(`[students.repo] Failed to fetch profile ${uid} from /api/v1/profiles, falling back to Firestore:`, err);
+    console.warn(`[profile.client] Failed to fetch profile ${uid} from /api/v1/profiles, falling back to Firestore:`, err);
   }
 
   const snap = await getDoc(

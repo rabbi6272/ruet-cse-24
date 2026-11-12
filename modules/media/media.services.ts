@@ -2,7 +2,7 @@ import "server-only";
 
 import { v2 as cloudinary } from "cloudinary";
 
-import type { ProfilePicture } from "../../types/Student";
+import type { ProfilePicture } from "@/modules/profile/profile.types";
 
 /**
  * Every profile photo lives at exactly one Cloudinary id: `Users/{uid}/avatar`.

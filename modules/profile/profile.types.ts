@@ -1,3 +1,10 @@
+import { z } from "zod";
+
+// Relative (not @/) so the tsx-run scripts in scripts/ can import this file too.
+import { seriesFromRoll } from "../series/series.types";
+
+// ─── Types ───────────────────────────────────────────────────
+
 export type Section = "a" | "b" | "c";
 
 export type SectionFilter = "All" | Section;
@@ -8,13 +15,11 @@ export interface ProfilePicture {
 }
 
 /**
- * Public directory profile. Stored at `profiles/{uid}` where `uid` is the
- * Firebase Auth user id — there is no separate client-generated id, so a
- * profile can never be orphaned from its owner.
+ * Public directory profile. Keyed by the Firebase Auth uid, so a profile can
+ * never be orphaned from its owner.
  *
- * NOTE: contains no credential material. Passwords live in Firebase Auth and
- * are never readable by the client. `mobileNumber` deliberately does NOT live
- * here — it is in `profiles/{uid}/private/contact`, which rules deny to clients.
+ * NOTE: contains no credential material. `mobileNumber` deliberately does NOT
+ * live here; it is a separate private contact record.
  */
 export interface Profile {
   id: string;
@@ -23,9 +28,8 @@ export interface Profile {
   email: string;
   roll: string;
   /**
-   * Two-digit series id (`"24"`), always derived from `roll` at the service
-   * layer (`types/series.ts`) and stored only so directory queries can filter
-   * with a single equality where. Never accepted from client input.
+   * Two-digit series id (`"24"`), always derived from `roll` server-side
+   * (`modules/series/series.types.ts`). Never accepted from client input.
    */
   series: string;
   sec: Section;
@@ -46,15 +50,12 @@ export type ProfileDraft = Omit<
   "id" | "email" | "series" | "published" | "createdAt" | "updatedAt" | "claimedAt"
 >;
 
-/** `profiles/{uid}/private/contact` — server-read only. */
+/** Private contact record — server-read only. */
 export interface PrivateContact {
   mobileNumber: string;
 }
 
-/**
- * A pre-Firebase-Auth profile waiting to be claimed. Stored at
- * `legacyProfiles/{sha256(normalizedEmail)}` and readable only by the Admin SDK.
- */
+/** A pre-Firebase-Auth profile waiting to be claimed. Readable only server-side. */
 export interface LegacyProfile {
   legacyId: string;
   fullName: string;
@@ -71,27 +72,6 @@ export interface LegacyProfile {
   createdAt: number;
 }
 
-export interface SessionUser {
-  uid: string;
-  email: string;
-  emailVerified: boolean;
-  /**
-   * True while the account still holds its seeded bootstrap credential — the
-   * pincode that used to sit in a publicly readable Firestore document.
-   *
-   * This is a distinct state from "signed in": the session is valid, but the
-   * only action permitted is replacing the password. Treating it as
-   * unauthenticated would be wrong (the student did prove who they are), and
-   * ignoring it would leave a known-public password usable indefinitely.
-   */
-  mustRotate: boolean;
-  /**
-   * True when the profile's section was derived from the roll number rather
-   * than stated by the student, so it is worth asking them to confirm it.
-   */
-  needsSection: boolean;
-}
-
 export const SECTION_LABELS: Record<SectionFilter, string> = {
   All: "All sections",
   a: "Section A",
@@ -99,15 +79,133 @@ export const SECTION_LABELS: Record<SectionFilter, string> = {
   c: "Section C",
 };
 
-export const BLOOD_GROUPS = [
-  "A+",
-  "A-",
-  "B+",
-  "B-",
-  "AB+",
-  "AB-",
-  "O+",
-  "O-",
-] as const;
+export const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as const;
 
 export type BloodGroup = (typeof BLOOD_GROUPS)[number];
+
+// ─── Schemas ─────────────────────────────────────────────────
+// Same rules the server applies, so the user sees field-level messages instead
+// of a generic failure. The server revalidates regardless.
+
+const optionalUrl = z
+  .union([z.url("Enter a valid URL, including https://"), z.literal("")])
+  .transform((value) => value.trim());
+
+export const fullNameSchema = z
+  .string()
+  .trim()
+  .min(2, "Enter your full name")
+  .max(80, "Name must be 80 characters or fewer");
+
+export const nicknameSchema = z
+  .string()
+  .trim()
+  .max(40, "Nickname must be 40 characters or fewer");
+
+export const emailSchema = z
+  .email("Enter a valid email address")
+  .max(254)
+  .transform((value) => value.trim().toLowerCase());
+
+/** Any registered series pattern (see `modules/series/series.types.ts`). */
+export const rollSchema = z
+  .string()
+  .trim()
+  .refine((value) => seriesFromRoll(value) !== null, "Roll must be a valid CSE roll number");
+
+/** All sections any registered series uses. */
+export const sectionSchema = z.enum(["a", "b", "c"]);
+
+export const seriesSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{2}$/, "Series must be a two-digit id");
+
+export const bloodGroupSchema = z
+  .string()
+  .trim()
+  .transform((value) => value.toUpperCase())
+  .refine(
+    (value) => value === "" || (BLOOD_GROUPS as readonly string[]).includes(value),
+    `Blood group must be one of ${BLOOD_GROUPS.join(", ")}`,
+  );
+
+export const bioSchema = z.string().trim().max(500, "Bio must be 500 characters or fewer");
+
+export const hobbySchema = z.string().trim().max(60, "Hobby must be 60 characters or fewer");
+
+export const mobileNumberSchema = z
+  .string()
+  .trim()
+  .refine(
+    (value) => value === "" || /^[+\d][\d\s-]{5,19}$/.test(value),
+    "Enter a valid mobile number",
+  );
+
+export const profilePictureSchema = z.object({
+  publicId: z.string().trim().max(300),
+  url: z.string().trim().max(600),
+});
+
+export const profileSchema = z.object({
+  fullName: fullNameSchema,
+  nickname: nicknameSchema,
+  email: emailSchema,
+  roll: rollSchema,
+  series: seriesSchema,
+  sec: sectionSchema,
+  bloodGroup: bloodGroupSchema,
+  bio: bioSchema,
+  hobby: hobbySchema,
+  fbProfile: optionalUrl,
+  profilePicture: profilePictureSchema,
+  published: z.boolean(),
+  createdAt: z.number().int().nonnegative(),
+  updatedAt: z.number().int().nonnegative(),
+  claimedAt: z.number().int().nonnegative(),
+});
+
+/** Everything a student may edit about their own profile. */
+export const profileDraftSchema = profileSchema
+  .omit({
+    email: true,
+    series: true,
+    published: true,
+    createdAt: true,
+    updatedAt: true,
+    claimedAt: true,
+  })
+  .strict();
+
+/**
+ * Patch semantics: every field optional, but at least one required.
+ * `profilePicture` is deliberately absent: the photo is changed only through
+ * the upload/delete routes, which derive the URL server-side.
+ */
+export const updateProfileSchema = z
+  .object({
+    fullName: fullNameSchema.optional(),
+    nickname: nicknameSchema.optional(),
+    roll: rollSchema.optional(),
+    sec: sectionSchema.optional(),
+    bloodGroup: bloodGroupSchema.optional(),
+    bio: bioSchema.optional(),
+    hobby: hobbySchema.optional(),
+    fbProfile: optionalUrl.optional(),
+    published: z.boolean().optional(),
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, "No changes supplied");
+
+export const updateContactSchema = z.object({ mobileNumber: mobileNumberSchema }).strict();
+
+export type ProfileInput = z.infer<typeof profileSchema>;
+export type ProfileDraftInput = z.infer<typeof profileDraftSchema>;
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+
+export const FIELD_LIMITS = {
+  fullName: 80,
+  nickname: 40,
+  bio: 500,
+  hobby: 60,
+} as const;

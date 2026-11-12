@@ -2,12 +2,12 @@
 
 import { useRef, useState } from "react";
 
-import { Avatar } from "../ui/Avatar";
-import { Button } from "../ui/Button";
-import { Alert, Camera } from "../ui/Icon";
-import { Spinner } from "../ui/Button";
+import { Avatar } from "@/shared/ui/Avatar";
+import { Button } from "@/shared/ui/Button";
+import { Alert, Camera } from "@/shared/ui/Icon";
+import { Spinner } from "@/shared/ui/Button";
 
-import type { ProfilePicture } from "../../../types/Student";
+import type { ProfilePicture } from "@/modules/profile/profile.types";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ACCEPT = "image/jpeg,image/png,image/webp";

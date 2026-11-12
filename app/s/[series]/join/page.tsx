@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { JoinFlow } from "../../../components/profiles/JoinFlow";
-import { buttonClasses } from "../../../components/ui/Button";
-import { getSeries } from "../../../../types/series";
+import { JoinFlow } from "@/modules/auth/components/JoinFlow";
+import { buttonClasses } from "@/shared/ui/Button";
+import { getSeries } from "@/modules/series/series.types";
 
 interface JoinPageProps {
   params: Promise<{ series: string }>;

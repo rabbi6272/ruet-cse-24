@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { MailCheck } from "lucide-react";
 
-import { Button } from "../ui/Button";
+import { Button } from "@/shared/ui/Button";
 
 import { SpamNotice } from "./SpamNotice";
 

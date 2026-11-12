@@ -1,4 +1,4 @@
-import { buttonClasses } from "../ui/Button";
+import { buttonClasses } from "@/shared/ui/Button";
 
 /**
  * Full-page navigation (not fetch): the OAuth dance is a chain of redirects
@@ -7,12 +7,10 @@ import { buttonClasses } from "../ui/Button";
 export function GoogleButton({
   next,
   label = "Continue with Google",
-  onClick,
 }: {
   /** Same-site path to land on afterwards when the account already has a profile. */
   next?: string;
   label?: string;
-  onClick?: () => void;
 }) {
   const href = `/api/auth/google/start${next ? `?next=${encodeURIComponent(next)}` : ""}`;
 
@@ -36,19 +34,6 @@ export function GoogleButton({
       />
     </svg>
   );
-
-  if (onClick) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className={buttonClasses("secondary", "md", "w-full")}
-      >
-        {icon}
-        {label}
-      </button>
-    );
-  }
 
   return (
     <a href={href} className={buttonClasses("secondary", "md", "w-full")}>

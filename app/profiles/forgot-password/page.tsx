@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { ForgotPasswordFlow } from "../../components/profiles/ForgotPasswordFlow";
+import { ForgotPasswordFlow } from "@/modules/auth/components/ForgotPasswordFlow";
 
 export const metadata: Metadata = {
   title: "Reset password",

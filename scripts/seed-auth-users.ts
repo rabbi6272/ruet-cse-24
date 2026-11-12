@@ -7,8 +7,8 @@ import {
   getFirestore,
 } from "firebase-admin/firestore";
 
-import { getSectionFromRoll } from "../types/series";
-import type { Section } from "../types/Student";
+import { getSectionFromRoll } from "../modules/series/series.types";
+import type { Section } from "../modules/profile/profile.types";
 
 /**
  * Seeds Firebase Auth from the legacy `users` collection so the switchover is

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import type { SeriesConfig } from "../types/series";
+import type { SeriesConfig } from "@/modules/series/series.types";
 
 const fallbackSiteUrl = "https://ruetcsearchive.app";
 

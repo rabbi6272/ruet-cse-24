@@ -1,11 +1,11 @@
 import Link from "next/link";
 
-import { Avatar } from "../ui/Avatar";
-import { Chip } from "../ui/Button";
-import { Droplet, Spark } from "../ui/Icon";
-import { cn } from "../ui/cn";
+import { Avatar } from "@/shared/ui/Avatar";
+import { Chip } from "@/shared/ui/Button";
+import { Droplet, Spark } from "@/shared/ui/Icon";
+import { cn } from "@/shared/ui/cn";
 
-import type { Profile } from "../../../types/Student";
+import type { Profile } from "@/modules/profile/profile.types";
 
 export interface ProfileCardProps {
   profile: Profile;

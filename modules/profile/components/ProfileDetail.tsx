@@ -2,16 +2,16 @@
 
 import Link from "next/link";
 
-import { useProfile, useViewerProfile } from "../../../lib/db/students/students.hooks";
-import { seriesFromRoll } from "../../../types/series";
+import { useProfile, useViewerProfile } from "@/modules/profile/profile.hooks";
+import { seriesFromRoll } from "@/modules/series/series.types";
 
 import type { ReactNode } from "react";
 
-import { Avatar } from "../ui/Avatar";
-import { Chip, buttonClasses } from "../ui/Button";
-import { CopyButton } from "../ui/CopyButton";
-import { Alert, ArrowLeft, Droplet, Facebook, Pencil, Spark } from "../ui/Icon";
-import { EmptyState, ErrorState, Skeleton } from "../ui/StateBlock";
+import { Avatar } from "@/shared/ui/Avatar";
+import { Chip, buttonClasses } from "@/shared/ui/Button";
+import { CopyButton } from "@/shared/ui/CopyButton";
+import { Alert, ArrowLeft, Droplet, Facebook, Pencil, Spark } from "@/shared/ui/Icon";
+import { EmptyState, ErrorState, Skeleton } from "@/shared/ui/StateBlock";
 
 function DetailSkeleton() {
   return (

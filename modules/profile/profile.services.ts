@@ -11,18 +11,18 @@ import {
   reserveRoll,
   setPrivateContact,
   writeProfile,
-} from "./students.admin.repo";
+} from "@/modules/profile/profile.repo";
 import {
   updateContactSchema,
   updateProfileSchema,
   type ProfileDraftInput,
   type UpdateProfileInput,
-} from "./students.schema";
-import { toProfile } from "./students.mapper";
-import { seriesFromRoll } from "../../../types/series";
-import { NO_PICTURE, findAvatar } from "../../media/avatar.server";
+} from "@/modules/profile/profile.types";
+import { toProfile } from "@/modules/profile/profile.mapper";
+import { seriesFromRoll } from "@/modules/series/series.types";
+import { NO_PICTURE, findAvatar } from "@/modules/media/media.services";
 
-import type { PrivateContact, Profile } from "../../../types/Student";
+import type { PrivateContact, Profile } from "@/modules/profile/profile.types";
 
 /**
  * Business rules live here, not in the repos, so that no caller can reach a

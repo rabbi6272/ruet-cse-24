@@ -1,19 +1,19 @@
 import { NextResponse } from "next/server";
 import sharp from "sharp";
 
-import { getSession } from "../../../../lib/auth/session";
+import { getSession } from "@/modules/auth/auth.services";
 import {
   countProfilesWithPicture,
   findProfileById,
   patchProfile,
-} from "../../../../lib/db/students/students.admin.repo";
+} from "@/modules/profile/profile.repo";
 import {
   avatarPublicId,
   destroyImage,
   ownsImage,
   uploadAvatar,
-} from "../../../../lib/media/avatar.server";
-import { revalidateAll } from "../../../../lib/revalidate";
+} from "@/modules/media/media.services";
+import { revalidateAll } from "@/shared/revalidate";
 
 /**
  * Profile photo upload. Requires a session, verifies the bytes with sharp,

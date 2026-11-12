@@ -4,8 +4,8 @@ import type {
   Profile,
   ProfilePicture,
   Section,
-} from "../../../types/Student";
-import { seriesFromRoll } from "../../../types/series";
+} from "@/modules/profile/profile.types";
+import { seriesFromRoll } from "@/modules/series/series.types";
 
 type Raw = Record<string, unknown>;
 

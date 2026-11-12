@@ -1,5 +1,23 @@
 # Implementation Plan — Multi-Series Directory + Firebase Email (Phase 0)
 
+> **Paths changed (2026-11-12).** The repo now follows cse-archive-server's module layout, so
+> paths below such as `lib/db/students/*`, `lib/auth/*` and `types/*` are historical:
+>
+> | Old path | New path |
+> |---|---|
+> | `lib/db/students/students.server.ts` | `modules/{auth,claim,profile}/<name>.actions.ts` |
+> | `students.hooks.ts` | `modules/profile/profile.hooks.ts` + `modules/auth/auth.hooks.ts` |
+> | `students.service.ts` | `modules/profile/profile.services.ts` |
+> | `students.admin.repo.ts` | `modules/profile/profile.repo.ts` |
+> | `students.repo.ts` | `modules/profile/profile.client.ts` |
+> | `students.mapper.ts` | `modules/profile/profile.mapper.ts` |
+> | `students.schema.ts` + `types/Student.ts` | `modules/profile/profile.types.ts` |
+> | `types/series.ts` | `modules/series/series.types.ts` |
+> | `lib/auth/session.ts`, `google.server.ts` | `modules/auth/auth.services.ts` |
+> | `lib/firebase/*`, `lib/site-url.ts` | `config/*` |
+> | `lib/api/serverApi.ts`, `lib/revalidate.ts`, `lib/auth/tokens.ts` | `shared/*` |
+> | `app/components/ui/*`, `app/components/Navbar.tsx` | `shared/ui/*`, `shared/layout/Navbar.tsx` |
+
 > **Handoff document.** An agent can implement everything below from this file alone.
 > Repo: Next.js 15 (App Router) + Firebase (Firestore, Auth, Admin SDK) + TanStack Query.
 > Verify after every phase: `npx tsc --noEmit` && `npx next build`.
@@ -27,6 +45,10 @@
 ---
 
 ## Phase 0 — Switch auth email to Firebase
+
+> **Superseded (2026-11-12).** Do not implement the client-side `firebase/auth` steps in this phase.
+> Password reset, sign-up, verification and claim now run on cse-archive-server through Server
+> Actions (`modules/auth/auth.actions.ts`, `modules/claim/claim.actions.ts`). See `../AUTH_FLOW_AND_SERVER_SIDE_MIGRATION.md`.
 
 ### 0.1 Password reset → Firebase built-in
 

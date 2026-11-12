@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 
-import { ProfileDirectory } from "../../components/profiles/ProfileDirectory";
+import { ProfileDirectory } from "@/modules/profile/components/ProfileDirectory";
 import { parseSection } from "../../profiles/searchParams";
-import { getSeries } from "../../../types/series";
+import { getSeries } from "@/modules/series/series.types";
 
 interface SeriesPageProps {
   params: Promise<{ series: string }>;

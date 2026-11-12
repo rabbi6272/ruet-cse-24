@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 
-import { useUnclaimedCount } from "../../../lib/db/students/students.hooks";
+import { useUnclaimedCount } from "@/modules/profile/profile.hooks";
 
-import { buttonClasses } from "../ui/Button";
-import { Alert } from "../ui/Icon";
+import { buttonClasses } from "@/shared/ui/Button";
+import { Alert } from "@/shared/ui/Icon";
 
-import type { SeriesConfig } from "../../../types/series";
+import type { SeriesConfig } from "@/modules/series/series.types";
 
 /**
  * Drives the legacy-migration call to action. The count comes from a server

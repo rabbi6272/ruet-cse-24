@@ -1,7 +1,7 @@
 import { notFound, permanentRedirect } from "next/navigation";
 
-import { findProfileById } from "../../../lib/db/students/students.admin.repo";
-import { seriesFromRoll } from "../../../types/series";
+import { findProfileById } from "@/modules/profile/profile.repo";
+import { seriesFromRoll } from "@/modules/series/series.types";
 
 interface ProfilePageProps {
   params: Promise<{ id: string }>;

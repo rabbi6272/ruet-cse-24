@@ -1,11 +1,11 @@
 "use client";
 
-import { Search, X } from "../ui/Icon";
-import { cn } from "../ui/cn";
+import { Search, X } from "@/shared/ui/Icon";
+import { cn } from "@/shared/ui/cn";
 
-import { SECTION_LABELS } from "../../../types/Student";
+import { SECTION_LABELS } from "@/modules/profile/profile.types";
 
-import type { SectionFilter } from "../../../types/Student";
+import type { SectionFilter } from "@/modules/profile/profile.types";
 
 export interface DirectoryToolbarProps {
   query: string;

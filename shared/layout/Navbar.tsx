@@ -2,13 +2,30 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
-import { cn } from "./ui/cn";
-import { buttonClasses } from "./ui/Button";
+import { useSignOut, useViewerSession } from "@/modules/profile/profile.hooks";
+
+import { cn } from "@/shared/ui/cn";
+import { buttonClasses } from "@/shared/ui/Button";
 
 export function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session } = useViewerSession();
+  const signOut = useSignOut();
+
+  async function onSignOut() {
+    const result = await signOut.mutateAsync().catch(() => null);
+    if (!result?.ok) {
+      toast.error("Could not sign out. Try again.");
+      return;
+    }
+    toast.success("Signed out");
+    router.replace("/");
+    router.refresh();
+  }
 
   // Series context comes from the URL (`/s/24/...`) — no provider needed.
   const seriesId = /^\/s\/(\d{2})(?:\/|$)/.exec(pathname)?.[1] ?? null;
@@ -62,6 +79,19 @@ export function Navbar() {
           >
             My profile
           </Link>
+          {session ? (
+            <button
+              type="button"
+              onClick={onSignOut}
+              disabled={signOut.isPending}
+              title={`Signed in as ${session.email}`}
+              className={cn(
+                "rounded-control px-3 py-2 text-sm font-semibold text-ink-700 transition-colors hover:bg-ink-100 hover:text-ink-900 disabled:opacity-50",
+              )}
+            >
+              {signOut.isPending ? "Signing out…" : "Sign out"}
+            </button>
+          ) : null}
         </div>
       </div>
     </nav>

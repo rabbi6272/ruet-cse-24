@@ -3,43 +3,44 @@
 import { useEffect, useState } from "react";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
-import {
-  clientSignIn,
-  clientSignInWithGoogle,
-  clientResendVerification,
-} from "../../../lib/auth/clientAuth";
+import { signInAction } from "@/modules/auth/auth.actions";
+import { studentsKeys } from "@/shared/queryKeys";
 
-import { Button, buttonClasses } from "../ui/Button";
-import { TextField } from "../ui/Field";
-import { Alert, Check } from "../ui/Icon";
+import { Button, buttonClasses } from "@/shared/ui/Button";
+import { TextField } from "@/shared/ui/Field";
+import { Alert } from "@/shared/ui/Icon";
 
 import { GoogleButton, OrDivider } from "./GoogleButton";
-import { SpamNotice } from "./SpamNotice";
 
 /**
  * Shown wherever a mutation needs a session. Deliberately not a route: both the
- * create and update pages need it inline, and a redirect would lose the visitor's
- * place and any half-typed form.
+ * create and update pages need it inline.
  *
- * Sign-in is handled purely by Firebase Auth on the client side.
+ * Sign-in runs on cse-archive-server via a Server Action; the session is an
+ * HttpOnly `__session` cookie. After success the cached "signed out" state is
+ * dropped and the user is sent to their dashboard ("My profile"), or to
+ * profile creation when they have no profile yet. Unverified accounts land on
+ * the create page, which shows the verify-email banner with a resend button.
  */
 export function SignInPanel({ context }: { context: string }) {
   const router = useRouter();
-  const pathname = usePathname();
+  const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
-  const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
-  const [verifyNotice, setVerifyNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [resending, setResending] = useState(false);
   const [needsClaim, setNeedsClaim] = useState(false);
 
-  // The Google callback lands here with `?authError=google` when it fails.
+  // The Google callback lands here with `?authError=<code>` when it fails.
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("authError") === "google") {
+    const code = new URLSearchParams(window.location.search).get("authError");
+    if (code === "claim") {
+      setFormError("This email has a profile from the old directory. Claim it with an email link first.");
+      setNeedsClaim(true);
+    } else if (code) {
       setFormError("Google sign-in didn't go through. Try again, or use your email and password.");
     }
   }, []);
@@ -50,110 +51,26 @@ export function SignInPanel({ context }: { context: string }) {
     setNeedsClaim(false);
     setBusy(true);
 
-    const result = await clientSignIn(email, password);
-    setBusy(false);
+    const result = await signInAction(email, password).catch(() => ({
+      ok: false as const,
+      error: "Sign-in is unavailable right now. Please try again.",
+      code: undefined,
+    }));
 
     if (!result.ok) {
+      setBusy(false);
       setFormError(result.error ?? "Could not sign in. Check your details.");
       setNeedsClaim(result.code === "claim");
       return;
     }
 
-    if (!result.emailVerified) {
-      setVerifyEmail(result.email ?? email);
-      setVerifyNotice(null);
-      setFormError(null);
-      return;
-    }
-
+    // Everything cached so far was fetched while signed out (session = null).
+    // resetQueries also refetches the queries still mounted on this page, so
+    // this works even when `next` is the page we are already on.
+    await queryClient.resetQueries({ queryKey: studentsKeys.all });
+    router.replace(result.next);
     router.refresh();
-  }
-
-  async function handleGoogleSignIn() {
-    setFormError(null);
-    setBusy(true);
-    const result = await clientSignInWithGoogle();
-    setBusy(false);
-    if (!result.ok) {
-      setFormError(result.error ?? "Google sign-in failed.");
-      return;
-    }
-    router.refresh();
-  }
-
-  async function onResend() {
-    setResending(true);
-    setVerifyNotice(null);
-    setFormError(null);
-
-    const result = await clientResendVerification();
-    setResending(false);
-
-    if (result.ok) {
-      setVerifyNotice("Verification email sent again. Check your inbox and spam folder.");
-    } else {
-      setFormError(result.error ?? "Could not resend the email. Try again.");
-    }
-  }
-
-  if (verifyEmail) {
-    return (
-      <div className="mx-auto w-full max-w-md px-4 py-10 sm:px-6">
-        <div className="rounded-panel border border-border bg-surface p-6 shadow-card sm:p-8">
-          <h1 className="text-xl font-bold tracking-tight text-fg">
-            Verify your email
-          </h1>
-          <p className="mt-1.5 text-sm leading-relaxed text-fg-muted">
-            We sent a verification link to{" "}
-            <strong className="font-semibold text-fg">{verifyEmail}</strong>.
-            Open it and you&apos;ll land on your profile — no further sign-in
-            needed.
-          </p>
-
-          <SpamNotice className="mt-5" />
-
-          {verifyNotice ? (
-            <p className="mt-5 flex items-start gap-2 rounded-control border border-border bg-surface-sunken px-3 py-2.5 text-sm text-fg-muted">
-              <Check className="mt-0.5 size-4 shrink-0 text-success" />
-              {verifyNotice}
-            </p>
-          ) : null}
-
-          {formError ? (
-            <p
-              role="alert"
-              className="mt-5 flex items-start gap-2 rounded-control border border-danger/30 bg-danger-soft px-3 py-2.5 text-sm font-medium text-danger"
-            >
-              <Alert className="mt-0.5 size-4 shrink-0" />
-              {formError}
-            </p>
-          ) : null}
-
-          <div className="mt-6 space-y-3">
-            <Button
-              type="button"
-              busy={resending}
-              busyLabel="Sending…"
-              onClick={onResend}
-              className="w-full"
-            >
-              Resend verification email
-            </Button>
-            <button
-              type="button"
-              onClick={() => {
-                setVerifyEmail(null);
-                setVerifyNotice(null);
-                setFormError(null);
-              }}
-              className="text-sm font-semibold text-ink-700 underline-offset-4 hover:text-ink-900 hover:underline"
-            >
-              Use a different account
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    // Keep the button busy until the navigation unmounts this panel.
   }
 
   return (
@@ -212,7 +129,8 @@ export function SignInPanel({ context }: { context: string }) {
         <OrDivider />
 
         <div className="mt-6">
-          <GoogleButton next={pathname ?? undefined} onClick={handleGoogleSignIn} />
+          {/* The Google callback picks "My profile" or "Create profile" itself. */}
+          <GoogleButton />
         </div>
 
         <div className="mt-6 space-y-2 border-t border-border pt-5 text-sm">

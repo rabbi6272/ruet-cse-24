@@ -2,12 +2,13 @@ import "server-only";
 
 import { FieldValue } from "firebase-admin/firestore";
 
-import { adminDb } from "../../firebase/admin";
-import { COLLECTIONS, PRIVATE_CONTACT_DOC } from "../../firebase/collections";
-import { toLegacyProfile, toPrivateContact, toProfile } from "./students.mapper";
-import { hashKey } from "../../auth/tokens";
+import { adminDb } from "@/config/firebase.admin";
+import { COLLECTIONS, PRIVATE_CONTACT_DOC } from "@/config/collections";
+import { toLegacyProfile, toPrivateContact, toProfile } from "@/modules/profile/profile.mapper";
+import { hashKey } from "@/shared/tokens";
+import { SERVER_URL } from "@/config/server-url";
 
-import type { LegacyProfile, PrivateContact, Profile } from "../../../types/Student";
+import type { LegacyProfile, PrivateContact, Profile } from "@/modules/profile/profile.types";
 
 type Raw = Record<string, unknown>;
 
@@ -23,25 +24,27 @@ const profiles = () => adminDb.collection(COLLECTIONS.profiles);
 const legacy = () => adminDb.collection(COLLECTIONS.legacyProfiles);
 const rolls = () => adminDb.collection(COLLECTIONS.rollIndex);
 
+function getServerApiOrigin(): string {
+  return SERVER_URL;
+}
+
 export function legacyIdForEmail(email: string): string {
   return hashKey(email.trim().toLowerCase());
 }
 
 export async function findProfileById(uid: string): Promise<Profile | null> {
-  const apiOrigin = process.env.API_ORIGIN;
-  if (apiOrigin) {
-    try {
-      const res = await fetch(`${apiOrigin.replace(/\/+$/, "")}/api/v1/profiles/${encodeURIComponent(uid)}`, {
-        next: { revalidate: 60 },
-      });
-      if (res.status === 404) return null;
-      if (res.ok) {
-        const json = await res.json();
-        if (json.ok && json.profile) return json.profile as Profile;
-      }
-    } catch (e) {
-      console.warn(`[students.admin.repo] API fetch failed for profile ${uid}:`, e);
+  const apiOrigin = getServerApiOrigin();
+  try {
+    const res = await fetch(`${apiOrigin}/api/v1/profiles/${encodeURIComponent(uid)}`, {
+      next: { revalidate: 60 },
+    });
+    if (res.status === 404) return null;
+    if (res.ok) {
+      const json = await res.json();
+      if (json.ok && json.profile) return json.profile as Profile;
     }
+  } catch (e) {
+    console.warn(`[students.admin.repo] API fetch failed for profile ${uid}:`, e);
   }
 
   const snap = await profiles().doc(uid).get();
@@ -164,19 +167,17 @@ export async function countLegacy(): Promise<number> {
  * guaranteed to be rejected at the roll reservation.
  */
 export async function countUnclaimed(): Promise<number> {
-  const apiOrigin = process.env.API_ORIGIN;
-  if (apiOrigin) {
-    try {
-      const res = await fetch(`${apiOrigin.replace(/\/+$/, "")}/api/v1/claim/count`, {
-        next: { revalidate: 300 },
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.ok && typeof json.count === "number") return json.count;
-      }
-    } catch (e) {
-      console.warn("[students.admin.repo] API fetch failed for claim count:", e);
+  const apiOrigin = getServerApiOrigin();
+  try {
+    const res = await fetch(`${apiOrigin}/api/v1/claim/count`, {
+      next: { revalidate: 300 },
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.ok && typeof json.count === "number") return json.count;
     }
+  } catch (e) {
+    console.warn("[students.admin.repo] API fetch failed for claim count:", e);
   }
 
   const [legacySnap, profileSnap, rollSnap] = await Promise.all([
@@ -200,20 +201,18 @@ export async function countUnclaimed(): Promise<number> {
 
 /** Published profiles in one series — the live count on the landing picker. */
 export async function countPublishedBySeries(series: string): Promise<number> {
-  const apiOrigin = process.env.API_ORIGIN;
-  if (apiOrigin) {
-    try {
-      const res = await fetch(`${apiOrigin.replace(/\/+$/, "")}/api/v1/profiles?series=${encodeURIComponent(series)}&limit=1`, {
-        next: { revalidate: 300 },
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.ok && typeof json.total === "number") return json.total;
-        if (json.ok && Array.isArray(json.profiles)) return json.profiles.length;
-      }
-    } catch (e) {
-      console.warn(`[students.admin.repo] API fetch failed for series count ${series}:`, e);
+  const apiOrigin = getServerApiOrigin();
+  try {
+    const res = await fetch(`${apiOrigin}/api/v1/profiles?series=${encodeURIComponent(series)}&limit=1`, {
+      next: { revalidate: 300 },
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.ok && typeof json.total === "number") return json.total;
+      if (json.ok && Array.isArray(json.profiles)) return json.profiles.length;
     }
+  } catch (e) {
+    console.warn(`[students.admin.repo] API fetch failed for series count ${series}:`, e);
   }
 
   const snap = await profiles()

@@ -5,12 +5,12 @@ import { useState } from "react";
 import {
   getAudienceSizeAction,
   sendAnnouncementAction,
-} from "./emailAction";
+} from "@/modules/email/email.actions";
 
-import { Button } from "../components/ui/Button";
-import { TextAreaField, TextField } from "../components/ui/Field";
-import { Alert } from "../components/ui/Icon";
-import { Dialog } from "../components/ui/Dialog";
+import { Button } from "@/shared/ui/Button";
+import { TextAreaField, TextField } from "@/shared/ui/Field";
+import { Alert } from "@/shared/ui/Icon";
+import { Dialog } from "@/shared/ui/Dialog";
 
 export default function EmailServicesPage() {
   const [audience, setAudience] = useState<number | null>(null);

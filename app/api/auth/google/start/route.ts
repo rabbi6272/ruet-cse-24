@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { GOOGLE_ERROR_PATH, startGoogleSignIn } from "../../../../../lib/auth/google.server";
+import { GOOGLE_ERROR_PATH, startGoogleSignIn } from "@/modules/auth/auth.services";
 
 export async function GET(request: NextRequest) {
   try {

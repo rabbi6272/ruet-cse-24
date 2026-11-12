@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { ClaimFlow } from "../../components/profiles/ClaimFlow";
+import { ClaimFlow } from "@/modules/claim/components/ClaimFlow";
 
 export const metadata: Metadata = {
   title: "Claim your profile",

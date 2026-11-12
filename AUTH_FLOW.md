@@ -1,5 +1,17 @@
 # Auth Flow — Current Architecture
 
+> **Update (2026-11-12):** Auth logic no longer lives in `lib/auth/*.server.ts` in this repo, and
+> the repo now uses cse-archive-server's module layout (`config/`, `modules/<name>/<name>.<role>.ts`,
+> `shared/`). Every auth flow is a Server Action in `modules/auth/auth.actions.ts` (claim:
+> `modules/claim/claim.actions.ts`) that calls **cse-archive-server** (`/api/v1/auth/*`,
+> `/api/v1/claim/*`) with no local fallback: sign-in, sign-up, forgot, resend verification, claim
+> and sign-out. Sign-out is the navbar's "Sign out" button. Google goes through `app/api/auth/google/*`,
+> which wraps the server's `/auth/google/start` and `/auth/google/exchange` via
+> `modules/auth/auth.services.ts`. That file also holds the local `__session` verification for
+> server components. New accounts get the `student` role. See
+> `../AUTH_FLOW_AND_SERVER_SIDE_MIGRATION.md` for the authoritative, cross-repo description.
+> Wherever the sections below mention local `lib/auth/*.server.ts` implementations, they are historical.
+
 Authoritative description of how authentication works in this codebase **as it exists now**:
 Firebase-only auth, server-side: sign-up/sign-in with email+password or Google, magic-link
 **Claim** (the only way to reclaim an old-directory profile), and a 5-day session cookie.

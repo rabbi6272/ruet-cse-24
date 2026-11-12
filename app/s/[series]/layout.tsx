@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { Navbar } from "../../components/Navbar";
+import { Navbar } from "@/shared/layout/Navbar";
 import { seriesMetadata } from "../../seo";
-import { getSeries } from "../../../types/series";
+import { getSeries } from "@/modules/series/series.types";
 
 interface SeriesLayoutProps {
   children: React.ReactNode;

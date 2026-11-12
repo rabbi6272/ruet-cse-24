@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { GOOGLE_ERROR_PATH, completeGoogleSignIn } from "../../../../../lib/auth/google.server";
-import { revalidateAll } from "../../../../../lib/revalidate";
+import { GOOGLE_ERROR_PATH, completeGoogleSignIn } from "@/modules/auth/auth.services";
+import { revalidateAll } from "@/shared/revalidate";
 
 export async function GET(request: NextRequest) {
   let path = GOOGLE_ERROR_PATH;

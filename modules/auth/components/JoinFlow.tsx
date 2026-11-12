@@ -6,19 +6,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { studentsKeys } from "../../../lib/db/students/students.hooks";
-import { clientSignUp, clientSignInWithGoogle } from "../../../lib/auth/clientAuth";
+import { studentsKeys } from "@/shared/queryKeys";
+import { signUpAction } from "@/modules/auth/auth.actions";
 
-import { Button, buttonClasses } from "../ui/Button";
-import { TextField } from "../ui/Field";
-import { Alert } from "../ui/Icon";
+import { Button, buttonClasses } from "@/shared/ui/Button";
+import { TextField } from "@/shared/ui/Field";
+import { Alert } from "@/shared/ui/Icon";
 
 import { GoogleButton, OrDivider } from "./GoogleButton";
 
 /**
- * Self sign-up for a series: Google, or email + password via Firebase Auth on client.
- * The new account is signed in immediately; email/password accounts verify their address
- * before the profile is created. Profile creation itself is stored in MongoDB.
+ * Self sign-up for a series: Google (server-side OAuth), or email + password via a Server
+ * Action on cse-archive-server. Every new account starts with the `student` role. The new
+ * account is signed in immediately; email/password accounts verify their address before
+ * the profile is created. Profile creation itself is stored in MongoDB.
  */
 export function JoinFlow({ seriesId }: { seriesId: string }) {
   const router = useRouter();
@@ -41,32 +42,20 @@ export function JoinFlow({ seriesId }: { seriesId: string }) {
     setError(null);
     setErrorCode(null);
 
-    const result = await clientSignUp(email, password);
+    const result = await signUpAction(seriesId, email, password).catch(() => ({
+      ok: false as const,
+      error: "Sign-up is unavailable right now. Please try again.",
+      code: undefined,
+    }));
 
     if (!result.ok) {
       setError(result.error ?? "Could not create the account. Try again.");
-      setErrorCode(result.code === "auth/email-already-in-use" ? "exists" : null);
+      setErrorCode(result.code === "claim" || result.code === "exists" ? result.code : null);
       setBusy(false);
       return;
     }
 
-    // Signed in via client Firebase Auth + session cookie
-    await queryClient.invalidateQueries({ queryKey: studentsKeys.all });
-    router.push("/profiles/create");
-    router.refresh();
-  }
-
-  async function handleGoogleSignUp() {
-    setBusy(true);
-    setError(null);
-    const result = await clientSignInWithGoogle();
-    setBusy(false);
-
-    if (!result.ok) {
-      setError(result.error ?? "Google sign-up failed.");
-      return;
-    }
-
+    // Signed in: the server action set the HttpOnly __session cookie.
     await queryClient.invalidateQueries({ queryKey: studentsKeys.all });
     router.push("/profiles/create");
     router.refresh();
@@ -149,7 +138,7 @@ export function JoinFlow({ seriesId }: { seriesId: string }) {
         <OrDivider />
 
         <div className="mt-6">
-          <GoogleButton next={`/s/${seriesId}`} onClick={handleGoogleSignUp} />
+          <GoogleButton next="/profiles/create" />
         </div>
 
         <p className="mt-6 border-t border-border pt-5 text-sm text-fg-muted">
